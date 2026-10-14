@@ -101,7 +101,7 @@ const Sidebar = ({ collapsed, onToggle, onCreateBoard, onCommand, mobileOpen, se
   const [newTitle, setNewTitle] = useState("");
   const [savingRename, setSavingRename] = useState(false);
 
-  // Real-time podaci za mobilni view
+  // Real-time podaci za mobilni prikaz
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [latency, setLatency] = useState(18);
@@ -217,7 +217,7 @@ const Sidebar = ({ collapsed, onToggle, onCreateBoard, onCommand, mobileOpen, se
   const formattedDate = `${currentTime.getDate()}. ${MONTH_NAMES[currentTime.getMonth()]} ${currentTime.getFullYear()}.`;
 
   const sidebarContent = (isMobile = false) => (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full w-full min-h-0 overflow-hidden">
       {/* 1. Header */}
       <div className="flex h-14 sm:h-16 items-center gap-2.5 px-3.5 shrink-0 border-b border-line/40">
         <div className="brand-gradient grid h-9 w-9 sm:h-10 sm:w-10 shrink-0 place-items-center rounded-2xl shadow-[var(--shadow-brand)] transition-transform duration-300 hover:scale-105">
@@ -275,8 +275,8 @@ const Sidebar = ({ collapsed, onToggle, onCreateBoard, onCommand, mobileOpen, se
         </div>
       )}
 
-      {/* 2. Skrolabilna unutrašnjost menija */}
-      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden no-scrollbar px-1 py-1">
+      {/* 2. Skrolabilna unutrašnjost - sa glatkim overflow-om */}
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-1 py-1 touch-pan-y">
         <SectionLabel collapsed={collapsed && !isMobile} hideOnCollapsed={!isMobile}>
           Menu
         </SectionLabel>
@@ -351,7 +351,7 @@ const Sidebar = ({ collapsed, onToggle, onCreateBoard, onCommand, mobileOpen, se
         </div>
 
         {/* Lista faza rada */}
-        <div className="mt-0.5 space-y-0.5 px-2 pb-1 max-h-36 sm:max-h-44 overflow-y-auto no-scrollbar">
+        <div className="mt-0.5 space-y-0.5 px-2 pb-1">
           {loading ? (
             Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className={cn("flex h-8.5 items-center gap-3", collapsed && !isMobile ? "justify-center" : "px-1")}>
@@ -450,7 +450,7 @@ const Sidebar = ({ collapsed, onToggle, onCreateBoard, onCommand, mobileOpen, se
         <SectionLabel collapsed={collapsed && !isMobile} hideOnCollapsed={!isMobile}>
           Generalne opcije
         </SectionLabel>
-        <nav className="space-y-0.5 px-2">
+        <nav className="space-y-0.5 px-2 pb-2">
           <NavItem
             to="/podesavanja"
             icon={Settings}
@@ -492,8 +492,8 @@ const Sidebar = ({ collapsed, onToggle, onCreateBoard, onCommand, mobileOpen, se
         </nav>
       </div>
 
-      {/* 3. Donji blok: Uvijek priljubljen */}
-      <div className="border-t border-line/60 p-2 sm:p-2.5 shrink-0 space-y-1.5 bg-surface mt-1">
+      {/* 3. Donji fiksni blok */}
+      <div className="border-t border-line/60 p-2 sm:p-2.5 shrink-0 space-y-1.5 bg-surface">
         <div
           onClick={() => {
             if (isMobile) setMobileOpen(false);
@@ -571,12 +571,12 @@ const Sidebar = ({ collapsed, onToggle, onCreateBoard, onCommand, mobileOpen, se
       </aside>
 
       {mobileOpen && (
-        <div className="fixed inset-0 z-50 flex items-start md:hidden">
+        <div className="fixed inset-0 z-50 flex items-stretch md:hidden">
           <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300 animate-in fade-in"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 animate-in fade-in"
             onClick={() => setMobileOpen(false)}
           />
-          <div className="relative flex w-[285px] h-auto max-h-[calc(100dvh-24px)] mt-3 ml-2 flex-col rounded-3xl border border-line bg-surface shadow-2xl z-10 animate-in slide-in-from-left duration-300 ease-out overflow-hidden">
+          <div className="relative flex w-[295px] h-[calc(100dvh-24px)] my-auto ml-2.5 flex-col rounded-3xl border border-line bg-surface shadow-2xl z-10 animate-in slide-in-from-left duration-300 ease-out overflow-hidden">
             {sidebarContent(true)}
           </div>
         </div>

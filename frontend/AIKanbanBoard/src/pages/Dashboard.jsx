@@ -9,8 +9,6 @@ import {
   Printer,
   Wrench,
   CheckCircle2,
-  FolderKanban,
-  Users,
   ChevronRight,
   AlertTriangle,
 } from "lucide-react";
@@ -96,7 +94,6 @@ const Dashboard = () => {
 
   const currentYear = new Date().getFullYear();
 
-  // Modal za unos novog pacijenta sa unaprijed izabranom fazom rada
   const [taskModal, setTaskModal] = useState({
     open: false,
     boardId: null,
@@ -105,7 +102,6 @@ const Dashboard = () => {
     members: [],
   });
 
-  // Detaljna statistika po fazama rada (ukupan broj, hitni radovi, članovi)
   const [boardsDetails, setBoardsDetails] = useState({});
 
   const fetchStagesData = useCallback(async () => {
@@ -165,7 +161,6 @@ const Dashboard = () => {
     };
   }, [fetchStagesData]);
 
-  // Mapiranje 4 glavne faze sa podacima
   const mappedStages = useMemo(() => {
     const totalAllTasks = Object.values(boardsDetails).reduce(
       (sum, item) => sum + (item.totalCount || 0),
@@ -198,7 +193,6 @@ const Dashboard = () => {
     });
   }, [boards, boardsDetails]);
 
-  // Otvaranje forme sa izabranom tačnom fazom rada
   const handleOpenNewPatient = async (e, stage) => {
     e?.stopPropagation?.();
     if (!stage.boardId) {
@@ -298,7 +292,7 @@ const Dashboard = () => {
                     key={stage.key}
                     onClick={() => stage.boardId && navigate(`/rad/${stage.boardId}`)}
                     className={cn(
-                      "group relative flex flex-col justify-between overflow-hidden rounded-3xl border bg-surface p-5 sm:p-7 shadow-[var(--shadow-card)] transition-all duration-300 cursor-pointer select-none",
+                      "group relative flex flex-col justify-between overflow-hidden rounded-3xl border bg-surface p-4 xs:p-5 sm:p-7 shadow-[var(--shadow-card)] transition-all duration-300 cursor-pointer select-none",
                       "hover:shadow-[var(--shadow-lift)] hover:-translate-y-1 active:scale-[0.99]",
                       stage.bgClass
                     )}
@@ -310,21 +304,21 @@ const Dashboard = () => {
 
                     {/* Gornji red: Ikonica, Brojač faze i Bedževi */}
                     <div>
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-3">
+                      <div className="flex items-start justify-between gap-2.5">
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
                           <div
-                            className="grid h-12 w-12 sm:h-14 sm:w-14 place-items-center rounded-2xl shadow-sm border transition-transform duration-300 group-hover:scale-110"
+                            className="grid h-10 w-10 xs:h-12 xs:w-12 sm:h-14 sm:w-14 shrink-0 place-items-center rounded-2xl shadow-sm border transition-transform duration-300 group-hover:scale-110"
                             style={{
                               backgroundColor: `${stage.color}15`,
                               borderColor: `${stage.color}30`,
                               color: stage.color,
                             }}
                           >
-                            <Icon className="h-6 w-6 sm:h-7 sm:w-7" />
+                            <Icon className="h-5.5 w-5.5 xs:h-6 xs:w-6 sm:h-7 sm:w-7" />
                           </div>
-                          <div>
+                          <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-1.5">
-                              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-muted">
+                              <span className="text-[9px] xs:text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-muted">
                                 Faza {idx + 1}
                               </span>
                               <span
@@ -332,39 +326,42 @@ const Dashboard = () => {
                                 style={{ backgroundColor: stage.dot }}
                               />
                             </div>
-                            <h3 className="font-display text-lg sm:text-xl font-bold tracking-tight text-ink group-hover:text-brand-600 transition-colors">
+                            {/* POPRAVLJENO: Spriječeno prelamanje na mobilnim i S25 Ultra */}
+                            <h3 className="font-display text-[14px] xs:text-[16px] sm:text-lg md:text-xl font-bold tracking-tight text-ink group-hover:text-brand-600 transition-colors whitespace-nowrap truncate">
                               {stage.title}
                             </h3>
                           </div>
                         </div>
 
                         {/* Bedž hitnih pacijenata */}
-                       {stage.urgentTasks > 0 && (
-  <span className="inline-flex items-center gap-1 rounded-full bg-red-500 text-white px-2.5 py-1 text-[10px] sm:text-[11px] font-bold shadow-sm animate-pulse shrink-0">
-    <AlertTriangle className="h-3 w-3" />
-    {stage.urgentTasks}{" "}
-    {stage.urgentTasks % 10 === 1 && stage.urgentTasks % 100 !== 11
-      ? "rad kasni"
-      : [2, 3, 4].includes(stage.urgentTasks % 10) && ![12, 13, 14].includes(stage.urgentTasks % 100)
-      ? "rada kasne"
-      : "radova kasni"}
-  </span>
-)}
+                        {stage.urgentTasks > 0 && (
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500 text-white px-2 xs:px-2.5 py-0.5 xs:py-1 text-[9px] xs:text-[10px] sm:text-[11px] font-bold shadow-sm animate-pulse shrink-0 self-center">
+                            <AlertTriangle className="h-3 w-3 shrink-0" />
+                            <span className="whitespace-nowrap">
+                              {stage.urgentTasks}{" "}
+                              {stage.urgentTasks % 10 === 1 && stage.urgentTasks % 100 !== 11
+                                ? "rad kasni"
+                                : [2, 3, 4].includes(stage.urgentTasks % 10) && ![12, 13, 14].includes(stage.urgentTasks % 100)
+                                ? "rada kasne"
+                                : "radova kasni"}
+                            </span>
+                          </span>
+                        )}
                       </div>
 
-                      <p className="mt-3 text-xs leading-relaxed text-muted line-clamp-2">
+                      <p className="mt-3 text-[11px] sm:text-xs leading-relaxed text-muted line-clamp-2">
                         {stage.desc}
                       </p>
                     </div>
 
                     {/* Srednji red: Glavna metrika i raspodjela */}
-                    <div className="my-5 border-y border-line/60 py-3.5 sm:py-4">
-                      <div className="flex items-baseline justify-between mb-2">
-                        <div className="flex items-baseline gap-2">
-                          <span className="font-display text-3xl sm:text-4xl font-bold tracking-tight tabular text-ink">
+                    <div className="my-4 xs:my-5 border-y border-line/60 py-3 sm:py-4">
+                      <div className="flex items-baseline justify-between mb-2 gap-2">
+                        <div className="flex items-baseline gap-1.5 min-w-0">
+                          <span className="font-display text-2xl xs:text-3xl sm:text-4xl font-bold tracking-tight tabular text-ink">
                             {stage.totalTasks}
                           </span>
-                          <span className="text-xs font-semibold text-muted">
+                          <span className="text-[11px] sm:text-xs font-semibold text-muted truncate">
                             {stage.totalTasks === 1
                               ? "pacijent"
                               : stage.totalTasks >= 2 && stage.totalTasks <= 4
@@ -373,7 +370,7 @@ const Dashboard = () => {
                           </span>
                         </div>
 
-                        <span className="text-xs font-bold tabular" style={{ color: stage.color }}>
+                        <span className="text-[11px] xs:text-xs font-bold tabular shrink-0" style={{ color: stage.color }}>
                           {stage.percentage}% ukupnih radova
                         </span>
                       </div>
@@ -396,17 +393,17 @@ const Dashboard = () => {
                       <button
                         type="button"
                         onClick={(e) => handleOpenNewPatient(e, stage)}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-ink transition-all duration-200 hover:border-brand-500/40 hover:bg-surface-2 active:scale-95 shadow-sm"
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-surface px-2.5 xs:px-3 py-1.5 text-[11px] xs:text-xs font-semibold text-ink transition-all duration-200 hover:border-brand-500/40 hover:bg-surface-2 active:scale-95 shadow-sm shrink-0"
                         title={`Dodaj novog pacijenta u: ${stage.title}`}
                       >
-                        <Plus className="h-3.5 w-3.5 text-brand-600" />
-                        <span>Novi pacijent</span>
+                        <Plus className="h-3.5 w-3.5 text-brand-600 shrink-0" />
+                        <span className="whitespace-nowrap">Novi pacijent</span>
                       </button>
 
                       {/* Ulazak u kanban ploču faze */}
-                      <div className="inline-flex items-center gap-1 text-xs font-bold text-ink group-hover:text-brand-600 group-hover:translate-x-1 transition-all">
-                        <span>Pregledajte pacijente</span>
-                        <ChevronRight className="h-4 w-4" />
+                      <div className="inline-flex items-center gap-0.5 xs:gap-1 text-[11px] xs:text-xs font-bold text-ink group-hover:text-brand-600 group-hover:translate-x-1 transition-all min-w-0">
+                        <span className="truncate whitespace-nowrap">Pregledajte pacijente</span>
+                        <ChevronRight className="h-3.5 w-3.5 xs:h-4 xs:w-4 shrink-0" />
                       </div>
                     </div>
                   </div>
