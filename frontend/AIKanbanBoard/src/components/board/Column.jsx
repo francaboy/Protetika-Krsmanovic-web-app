@@ -145,7 +145,7 @@ const Column = ({
       }}
     >
       {/* Zaglavlje faze rada prilagođeno za mobilne uređaje i tablete */}
-      <div className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-2.5 sm:gap-3 border-b border-line/60 pb-3">
+      <div className="mb-3 flex shrink-0 items-center justify-between gap-2 border-b border-line/60 pb-3">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <span
             className="h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0 rounded-full shadow-sm ring-white/60 dark:ring-black/40"
@@ -156,10 +156,11 @@ const Column = ({
             <input
               ref={inputRef}
               value={title}
+              size={Math.max(title.length || 1, 8)}
               onChange={(e) => setTitle(e.target.value)}
               onBlur={commitRename}
               onKeyDown={handleKeyDown}
-              className="rounded-lg border border-brand-500 bg-surface px-2.5 py-1 text-sm sm:text-base font-bold text-ink outline-none ring-2 ring-brand-500/15"
+              className="w-auto min-w-[90px] max-w-[130px] xs:max-w-[190px] sm:max-w-[280px] rounded-xl border border-brand-500 bg-surface px-2 py-0.5 text-xs sm:text-base font-bold text-ink outline-none ring-2 ring-brand-500/15 shadow-inner"
             />
           ) : (
             <h3
@@ -174,7 +175,7 @@ const Column = ({
           {/* Pulsirajući badge za broj pacijenata */}
           <span
             className={cn(
-              "shrink-0 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] sm:text-xs font-semibold tabular transition-all duration-300 border",
+              "shrink-0 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] sm:text-xs font-semibold tabular transition-all duration-300 border",
               tasks.length > 0
                 ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-700 shadow-[0_0_10px_rgba(16,185,129,0.2)]"
                 : "bg-surface-2 text-muted border-line"
@@ -188,7 +189,7 @@ const Column = ({
             )}
             <span>
               {tasks.length}{" "}
-              <span className="hidden xs:inline">
+              <span className="hidden sm:inline">
                 {tasks.length === 1
                   ? "pacijent"
                   : tasks.length >= 2 && tasks.length <= 4
@@ -203,7 +204,7 @@ const Column = ({
           <button
             type="button"
             onClick={() => onAddTask(column.id)}
-            className="flex items-center gap-1 rounded-xl border border-line/80 bg-surface px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-ink shadow-[var(--shadow-card)] transition-all hover:bg-surface-2 hover:border-brand-500/40 active:scale-95"
+            className="flex items-center gap-1 rounded-xl border border-line/80 bg-surface px-2 sm:px-3 py-1.5 text-xs font-semibold text-ink shadow-[var(--shadow-card)] transition-all hover:bg-surface-2 hover:border-brand-500/40 active:scale-95"
             title="Dodaj novog pacijenta"
           >
             <Plus className="h-3.5 w-3.5 text-brand-600 shrink-0" />

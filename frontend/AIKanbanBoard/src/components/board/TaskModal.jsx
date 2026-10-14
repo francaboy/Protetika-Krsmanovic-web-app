@@ -52,7 +52,11 @@ const CustomSelect = ({ label, value, onChange, placeholder, options, renderOpti
       }
     };
     document.addEventListener("mousedown", handleOutside);
-    return () => document.removeEventListener("mousedown", handleOutside);
+    document.addEventListener("touchstart", handleOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+      document.removeEventListener("touchstart", handleOutside);
+    };
   }, []);
 
   const selectedOption = options.find((o) => String(o.value) === String(value));
@@ -92,30 +96,32 @@ const CustomSelect = ({ label, value, onChange, placeholder, options, renderOpti
         </button>
 
         {open && !disabled && (
-          <div className="card absolute left-0 right-0 z-50 mt-1.5 max-h-56 overflow-y-auto rounded-2xl border border-line bg-surface p-1 shadow-[var(--shadow-lift)] no-scrollbar animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-150 ease-out">
-            {options.map((opt) => {
-              const active = String(opt.value) === String(value);
-              return (
-                <div
-                  key={opt.value}
-                  onClick={() => {
-                    onChange(opt.value);
-                    setOpen(false);
-                  }}
-                  className={cn(
-                    "flex cursor-pointer items-center justify-between gap-2 rounded-xl px-2.5 py-2 text-xs transition-all duration-150 active:scale-[0.98]",
-                    active
-                      ? "bg-brand-50 font-semibold text-brand-700"
-                      : "text-ink hover:bg-surface-2"
-                  )}
-                >
-                  <div className="flex min-w-0 items-center gap-2">
-                    {renderOption ? renderOption(opt) : <span className="truncate">{opt.label}</span>}
+          <div className="card absolute left-0 right-0 z-50 mt-1.5 overflow-hidden rounded-2xl border border-line bg-surface shadow-[var(--shadow-lift)] animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-150 ease-out">
+            <div className="max-h-52 overflow-y-auto overscroll-contain p-1.5 space-y-0.5 [scrollbar-width:thin] [scrollbar-color:rgba(0,0,0,0.15)_transparent]">
+              {options.map((opt) => {
+                const active = String(opt.value) === String(value);
+                return (
+                  <div
+                    key={opt.value}
+                    onClick={() => {
+                      onChange(opt.value);
+                      setOpen(false);
+                    }}
+                    className={cn(
+                      "flex cursor-pointer items-center justify-between gap-2 rounded-xl px-2.5 py-2 text-xs transition-all duration-150 active:scale-[0.98]",
+                      active
+                        ? "bg-brand-50 font-semibold text-brand-700"
+                        : "text-ink hover:bg-surface-2"
+                    )}
+                  >
+                    <div className="flex min-w-0 items-center gap-2">
+                      {renderOption ? renderOption(opt) : <span className="truncate">{opt.label}</span>}
+                    </div>
+                    {active && <Check className="h-3.5 w-3.5 shrink-0 text-brand-600" />}
                   </div>
-                  {active && <Check className="h-3.5 w-3.5 shrink-0 text-brand-600" />}
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
@@ -170,7 +176,6 @@ const TaskModal = ({
       }));
   }, [boards]);
 
-  // Ako je proslijeđen defaultBoardId ili boardId, uzimamo njega kao prioritet
   const resolvedBoardId = useMemo(() => {
     if (task?.board_id) return String(task.board_id);
     if (defaultBoardId) return String(defaultBoardId);
@@ -294,7 +299,7 @@ const TaskModal = ({
       >
         <form
           onSubmit={onSubmit}
-          className="space-y-4 max-h-[calc(100dvh-120px)] sm:max-h-none overflow-y-auto overscroll-contain pr-1 touch-pan-y"
+          className="space-y-4 max-h-[calc(100dvh-130px)] sm:max-h-none overflow-y-auto overscroll-contain px-1 py-1 touch-pan-y [scrollbar-width:thin] [scrollbar-color:rgba(0,0,0,0.12)_transparent]"
         >
           <Input
             label="Ime i prezime pacijenta"
@@ -316,14 +321,21 @@ const TaskModal = ({
             />
           </div>
 
-          <Textarea
-            label="Napomene i uputstva za laboratoriju"
-            rows={3}
-            disabled={saving}
-            placeholder="Unesite detaljnija uputstva ili napomenu…"
-            value={form.description}
-            onChange={set("description")}
-          />
+          <div className="space-y-1.5">
+  <label className="block text-xs font-semibold text-ink">
+    Napomene i uputstva za laboratoriju
+  </label>
+  <div className="relative w-full overflow-hidden rounded-2xl border border-line bg-surface p-1 shadow-[var(--shadow-card)] transition-all duration-200 focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/15 hover:border-brand-500/40">
+    <textarea
+      rows={3}
+      disabled={saving}
+      placeholder="Unesite detaljnija uputstva ili napomenu…"
+      value={form.description}
+      onChange={set("description")}
+      className="w-full bg-transparent px-3 py-2 text-xs text-ink placeholder:text-muted outline-none resize-none overscroll-contain scrollbar-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden touch-pan-y"
+    />
+  </div>
+</div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <CustomSelect
@@ -418,7 +430,7 @@ const TaskModal = ({
             />
           </div>
 
-          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2">
+          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-3 border-t border-line/40">
             <div>
               {isEdit && (
                 <Button
