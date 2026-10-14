@@ -294,7 +294,7 @@ const Team = () => {
                 <Users className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-wider text-faint">Ukupno</p>
+                <p className="text-[9.5px] font-bold uppercase tracking-wider text-faint">Ukupno</p>
                 <p className="font-display text-xl sm:text-2xl font-bold text-ink tabular">{stats.total}</p>
               </div>
             </div>
@@ -304,7 +304,7 @@ const Team = () => {
                 <Briefcase className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-wider text-faint">Aktivno</p>
+                <p className="text-[9.5px] font-bold uppercase tracking-wider text-faint">Aktivno</p>
                 <p className="font-display text-xl sm:text-2xl font-bold text-ink tabular">
                   {stats.activeWorkers} <span className="text-xs font-semibold text-muted">/ {stats.total}</span>
                 </p>
@@ -316,7 +316,7 @@ const Team = () => {
                 <ShieldCheck className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-wider text-faint">Admin tim</p>
+                <p className="text-[9.5px] font-bold uppercase tracking-wider text-faint">Admin tim</p>
                 <p className="font-display text-xl sm:text-2xl font-bold text-ink tabular">
                   {stats.owners + stats.admins}
                 </p>
@@ -328,7 +328,7 @@ const Team = () => {
                 <Layers className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-wider text-faint">Pokrivenost</p>
+                <p className="text-[9.5px] font-bold uppercase tracking-wider text-faint">Pokrivenost</p>
                 <p className="font-display text-xl sm:text-2xl font-bold text-ink tabular">{stats.busyRatio}%</p>
               </div>
             </div>

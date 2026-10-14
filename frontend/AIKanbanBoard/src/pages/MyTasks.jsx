@@ -99,7 +99,7 @@ const extractTeethCount = (task) => {
   return match ? match[1].trim() : null;
 };
 
-const CustomFilterSelect = ({ value, onChange, placeholder, options, className }) => {
+const CustomFilterSelect = ({ value, onChange, placeholder, options, className, align = "auto" }) => {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -149,7 +149,16 @@ const CustomFilterSelect = ({ value, onChange, placeholder, options, className }
       </button>
 
       {open && (
-        <div className="card animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-150 absolute left-0 right-0 md:right-auto z-[130] mt-1.5 min-w-[170px] max-w-[260px] overflow-hidden rounded-2xl border border-line bg-surface p-1 shadow-[var(--shadow-lift)]">
+        <div
+          className={cn(
+            "card animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-150 absolute z-[130] mt-1.5 w-full min-w-[170px] max-w-[calc(100vw-32px)] overflow-hidden rounded-2xl border border-line bg-surface p-1 shadow-[var(--shadow-lift)]",
+            align === "right"
+              ? "right-0 left-auto"
+              : align === "left"
+              ? "left-0 right-auto"
+              : "left-0 right-auto sm:right-auto"
+          )}
+        >
           <div
             onClick={() => {
               onChange("");
@@ -166,7 +175,7 @@ const CustomFilterSelect = ({ value, onChange, placeholder, options, className }
 
           <div className="my-1 h-px bg-line/60" />
 
-          <div className="max-h-56 overflow-y-auto no-scrollbar">
+          <div className="max-h-56 overflow-y-auto no-scrollbar touch-pan-y overscroll-contain">
             {options.map((opt) => {
               const active = String(opt.value) === String(value);
               const Icon = opt.icon;
@@ -782,99 +791,110 @@ const MyTasks = () => {
           </div>
 
           {/* MOBILNI FILTERI */}
-          <div className="mb-5 flex flex-col gap-2.5 md:hidden">
-            <div className="flex items-center gap-2">
-              <div className="relative flex-1">
-                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-faint" />
-                <input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Pretraga pacijenata..."
-                  className="h-10 w-full rounded-full border border-line bg-surface pl-9 pr-8 text-xs shadow-[var(--shadow-card)] outline-none transition-all duration-200 focus:border-brand-500/50 focus:ring-2 focus:ring-brand-500/15"
-                />
-                {search && (
-                  <button
-                    type="button"
-                    onClick={() => setSearch("")}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 grid h-5 w-5 place-items-center rounded-full text-faint hover:bg-surface-2 hover:text-ink"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                )}
-              </div>
+<div className="mb-5 flex flex-col gap-2.5 md:hidden">
+  {/* Prvi red: Pretraga i Sortiranje */}
+  <div className="flex items-center gap-2">
+    <div className="relative flex-1 min-w-0">
+      <Search className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-faint" />
+      <input
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Pretraga pacijenata..."
+        className="h-10 w-full rounded-2xl border border-line bg-surface pl-9 pr-8 text-xs shadow-[var(--shadow-card)] outline-none transition-all duration-200 focus:border-brand-500/50 focus:ring-2 focus:ring-brand-500/15"
+      />
+      {search && (
+        <button
+          type="button"
+          onClick={() => setSearch("")}
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 grid h-5 w-5 place-items-center rounded-full text-faint hover:bg-surface-2 hover:text-ink"
+        >
+          <X className="h-3 w-3" />
+        </button>
+      )}
+    </div>
 
-              <div className="w-[125px] shrink-0">
-                <CustomFilterSelect
-                  value={sortBy}
-                  onChange={setSortBy}
-                  placeholder="Sortiranje"
-                  options={SORT_OPTIONS}
-                  className="w-full"
-                />
-              </div>
-            </div>
+    {/* Sortiranje: Postavljen min-w i relative sa desnim sidrenjem */}
+    <div className="w-[120px] xs:w-[130px] shrink-0 relative">
+      <CustomFilterSelect
+        value={sortBy}
+        onChange={setSortBy}
+        placeholder="Sortiranje"
+        options={SORT_OPTIONS}
+        className="w-full"
+        align="right"
+      />
+    </div>
+  </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <CustomFilterSelect
-                value={priority}
-                onChange={setPriority}
-                placeholder="Prioritet"
-                options={PRIORITIES}
-                className="w-full"
-              />
-              <CustomFilterSelect
-                value={boardId}
-                onChange={setBoardId}
-                placeholder="Faza rada"
-                options={boardsInPlay}
-                className="w-full"
-              />
-            </div>
+  {/* Drugi red: Prioritet i Faza rada */}
+  <div className="grid grid-cols-2 gap-2">
+    <div className="min-w-0 relative">
+      <CustomFilterSelect
+        value={priority}
+        onChange={setPriority}
+        placeholder="Prioritet"
+        options={PRIORITIES}
+        className="w-full"
+      />
+    </div>
+    {/* Faza rada je sa desne strane, pa se dropdown meni obavezno poravnava uz desnu ivicu */}
+    <div className="min-w-0 relative">
+      <CustomFilterSelect
+        value={boardId}
+        onChange={setBoardId}
+        placeholder="Faza rada"
+        options={boardsInPlay}
+        className="w-full"
+        align="right"
+      />
+    </div>
+  </div>
 
-            <div className="flex items-center justify-between gap-2 pt-0.5">
-              <div>
-                {hasFilters && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPriority("");
-                      setBoardId("");
-                      setSearch("");
-                      setStatusTab("all");
-                      setSortBy("date-desc");
-                    }}
-                    className="rounded-full bg-surface-2 px-3 py-1 text-xs font-semibold text-faint hover:text-ink transition-colors active:scale-95 border border-line/60"
-                  >
-                    Poništi filtere
-                  </button>
-                )}
-              </div>
+  {/* Treći red: Poništavanje filtera i Brojač */}
+  <div className="flex items-center justify-between gap-2 pt-0.5">
+    <div>
+      {hasFilters && (
+        <button
+          type="button"
+          onClick={() => {
+            setPriority("");
+            setBoardId("");
+            setSearch("");
+            setStatusTab("all");
+            setSortBy("date-desc");
+          }}
+          className="rounded-full bg-surface-2 px-3 py-1 text-xs font-semibold text-faint hover:text-ink transition-colors active:scale-95 border border-line/60"
+        >
+          Poništi filtere
+        </button>
+      )}
+    </div>
 
-              <span
-                className={cn(
-                  "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold tabular transition-all duration-300",
-                  filteredAndSorted.length > 0
-                    ? "border border-emerald-500/30 bg-emerald-500/15 text-emerald-700 shadow-[0_0_12px_rgba(16,185,129,0.25)]"
-                    : "bg-surface-2 text-muted"
-                )}
-              >
-                {filteredAndSorted.length > 0 && (
-                  <span className="relative flex h-2 w-2 shrink-0">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                  </span>
-                )}
-                <span>
-                  {filteredAndSorted.length}{" "}
-                  {filteredAndSorted.length === 1
-                    ? "pacijent"
-                    : filteredAndSorted.length >= 2 && filteredAndSorted.length <= 4
-                    ? "pacijenta"
-                    : "pacijenata"}
-                </span>
-              </span>
-            </div>
-          </div>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 xs:gap-2 rounded-full px-2.5 xs:px-3 py-1 text-[11px] xs:text-xs font-semibold tabular transition-all duration-300 shrink-0",
+        filteredAndSorted.length > 0
+          ? "border border-emerald-500/30 bg-emerald-500/15 text-emerald-700 shadow-[0_0_12px_rgba(16,185,129,0.25)]"
+          : "bg-surface-2 text-muted"
+      )}
+    >
+      {filteredAndSorted.length > 0 && (
+        <span className="relative flex h-2 w-2 shrink-0">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+        </span>
+      )}
+      <span className="whitespace-nowrap">
+        {filteredAndSorted.length}{" "}
+        {filteredAndSorted.length === 1
+          ? "pacijent"
+          : filteredAndSorted.length >= 2 && filteredAndSorted.length <= 4
+          ? "pacijenta"
+          : "pacijenata"}
+      </span>
+    </span>
+  </div>
+</div>
 
           {/* PRIKAZ PACIJENATA */}
           {loading ? (

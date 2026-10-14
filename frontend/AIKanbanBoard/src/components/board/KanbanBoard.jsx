@@ -22,7 +22,7 @@ const positionForIndex = (siblings, index) => {
   if (prev == null) {
     if (next == null) return 1000;
     if (next > 0) return next / 2;
-    return next - 1000; // Garantuje da je uvijek manje od trenutnog minimuma
+    return next - 1000;
   }
   if (next == null) return prev + 1000;
 
@@ -43,14 +43,28 @@ const KanbanBoard = ({
   onAiGenerate,
 }) => {
   const [activeTask, setActiveTask] = useState(null);
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" ? window.innerWidth < 768 : false
+  );
 
-  const sensors = useSensors(
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Na mobilnom potpuno gasimo senzore da ne kvare touch skrol
+  const desktopSensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 5,
       },
     })
   );
+
+  const sensors = isMobile ? [] : desktopSensors;
 
   // Sinhronizacija arhiviranja u realnom vremenu
   useEffect(() => {
@@ -114,13 +128,14 @@ const KanbanBoard = ({
   );
 
   const onDragStart = ({ active }) => {
+    if (isMobile) return;
     const found = visibleTasks.find((t) => t.id === active.id);
     setActiveTask(found || null);
   };
 
   const onDragEnd = ({ active, over }) => {
     setActiveTask(null);
-    if (!over) return;
+    if (!over || isMobile) return;
 
     const activeId = active.id;
     const activeTaskObj = visibleTasks.find((t) => t.id === activeId);
@@ -142,7 +157,6 @@ const KanbanBoard = ({
 
     let index;
     if (isColumnChange) {
-      // Kada se prebacuje u novu fazu/kolonu, UVIJEK ide na 1. mjesto na vrh
       index = 0;
     } else if (overData?.type === "task") {
       const overIndex = siblings.findIndex((t) => t.id === over.id);
@@ -153,7 +167,6 @@ const KanbanBoard = ({
 
     const newPosition = positionForIndex(siblings, index);
 
-    // Ako nema stvarne promjene pozicije ni kolone, prekidamo
     if (
       !isColumnChange &&
       Math.abs(Number(activeTaskObj.position) - Number(newPosition)) < 0.001
@@ -172,7 +185,7 @@ const KanbanBoard = ({
       onDragEnd={onDragEnd}
       onDragCancel={() => setActiveTask(null)}
     >
-      <div className="flex h-full w-full items-start justify-start gap-5 overflow-x-auto overflow-y-hidden px-4 md:px-6 pb-6 no-scrollbar select-none">
+      <div className="flex h-full w-full items-start justify-start gap-5 overflow-x-auto overflow-y-auto md:overflow-y-hidden px-4 md:px-6 pb-6 no-scrollbar touch-pan-x overscroll-x-contain select-none">
         {columns.map((col, i) => (
           <Column
             key={col.id}
@@ -189,13 +202,15 @@ const KanbanBoard = ({
         ))}
       </div>
 
-      <DragOverlay dropAnimation={{ duration: 180, easing: "cubic-bezier(0.18, 0.67, 0.6, 1.22)" }}>
-        {activeTask ? (
-          <div className="w-[310px] rotate-1 cursor-grabbing shadow-2xl opacity-95">
-            <TaskCard task={activeTask} overlay />
-          </div>
-        ) : null}
-      </DragOverlay>
+      {!isMobile && (
+        <DragOverlay dropAnimation={{ duration: 180, easing: "cubic-bezier(0.18, 0.67, 0.6, 1.22)" }}>
+          {activeTask ? (
+            <div className="w-[310px] rotate-1 cursor-grabbing shadow-2xl opacity-95">
+              <TaskCard task={activeTask} overlay />
+            </div>
+          ) : null}
+        </DragOverlay>
+      )}
     </DndContext>
   );
 };

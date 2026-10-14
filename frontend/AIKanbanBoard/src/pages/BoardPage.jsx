@@ -56,31 +56,32 @@ const extractDoctor = (task) => {
   return match ? match[1].trim() : "";
 };
 
-const CustomFilterSelect = ({ value, onChange, placeholder, options, className }) => {
+const CustomFilterSelect = ({ value, onChange, placeholder, options, className, align = "auto" }) => {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
   useEffect(() => {
     const handleOutside = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) {
-        setOpen(false);
-      }
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
     };
     document.addEventListener("mousedown", handleOutside);
-    return () => document.removeEventListener("mousedown", handleOutside);
+    document.addEventListener("touchstart", handleOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+      document.removeEventListener("touchstart", handleOutside);
+    };
   }, []);
 
   const selectedOption = options.find((o) => String(o.value) === String(value));
 
   return (
-    <div className={cn("relative w-full sm:w-auto", className)} ref={ref}>
+    <div className={cn("relative w-full md:w-auto", className)} ref={ref}>
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
         className={cn(
-          "flex h-9 w-full sm:w-auto sm:min-w-[130px] items-center justify-between gap-2 rounded-full border border-line bg-surface px-3.5 text-xs text-ink shadow-[var(--shadow-card)] transition-all duration-200 active:scale-95",
+          "flex h-9 w-full md:w-auto md:min-w-[140px] items-center justify-between gap-2 rounded-full border border-line bg-surface px-3.5 text-xs text-ink shadow-[var(--shadow-card)] transition-all duration-200 active:scale-95",
           "hover:border-brand-500/40 hover:shadow-[var(--shadow-soft)]",
-          selectedOption ? "border-brand-500/50 bg-brand-50/40 text-brand-800 font-semibold" : "text-muted",
           open && "border-brand-500 ring-2 ring-brand-500/15"
         )}
       >
@@ -100,17 +101,21 @@ const CustomFilterSelect = ({ value, onChange, placeholder, options, className }
               <X className="h-3 w-3" />
             </span>
           )}
-          <ChevronDown
-            className={cn(
-              "h-3.5 w-3.5 text-faint transition-transform duration-200",
-              open && "rotate-180 text-brand-600"
-            )}
-          />
+          <ChevronDown className={cn("h-3.5 w-3.5 text-faint transition-transform duration-200", open && "rotate-180 text-brand-600")} />
         </div>
       </button>
 
       {open && (
-        <div className="card animate-in absolute left-0 right-0 sm:right-auto z-[130] mt-1.5 min-w-[170px] max-w-xs overflow-hidden rounded-2xl border border-line bg-surface p-1 shadow-[var(--shadow-lift)]">
+        <div
+          className={cn(
+            "card animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-150 absolute z-[130] mt-1.5 w-full min-w-[170px] max-w-[calc(100vw-32px)] overflow-hidden rounded-2xl border border-line bg-surface p-1 shadow-[var(--shadow-lift)]",
+            align === "right"
+              ? "right-0 left-auto"
+              : align === "left"
+              ? "left-0 right-auto"
+              : "left-0 right-auto sm:right-auto"
+          )}
+        >
           <div
             onClick={() => {
               onChange("");
@@ -118,9 +123,7 @@ const CustomFilterSelect = ({ value, onChange, placeholder, options, className }
             }}
             className={cn(
               "flex cursor-pointer items-center justify-between rounded-xl px-3 py-2 text-xs transition-colors",
-              !value
-                ? "bg-brand-50 font-semibold text-brand-700"
-                : "text-muted hover:bg-surface-2 hover:text-ink"
+              !value ? "bg-brand-50 font-semibold text-brand-700" : "text-muted hover:bg-surface-2 hover:text-ink"
             )}
           >
             <span>{placeholder}</span>
@@ -129,7 +132,7 @@ const CustomFilterSelect = ({ value, onChange, placeholder, options, className }
 
           <div className="my-1 h-px bg-line/60" />
 
-          <div className="max-h-56 overflow-y-auto no-scrollbar">
+          <div className="max-h-56 overflow-y-auto no-scrollbar touch-pan-y overscroll-contain">
             {options.map((opt) => {
               const active = String(opt.value) === String(value);
               const Icon = opt.icon;
@@ -142,9 +145,7 @@ const CustomFilterSelect = ({ value, onChange, placeholder, options, className }
                   }}
                   className={cn(
                     "flex cursor-pointer items-center justify-between gap-2 rounded-xl px-3 py-2 text-xs transition-colors active:scale-[0.98]",
-                    active
-                      ? "bg-brand-50 font-semibold text-brand-700"
-                      : "text-ink hover:bg-surface-2"
+                    active ? "bg-brand-50 font-semibold text-brand-700" : "text-ink hover:bg-surface-2"
                   )}
                 >
                   <div className="flex items-center gap-2 truncate">
@@ -624,74 +625,83 @@ const BoardPage = () => {
         </div>
 
         {/* MOBILE & TABLET VIEW */}
-        <div className="flex flex-col gap-2 md:hidden">
-          {/* Red 1: Pretraga i Sortiranje */}
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-faint" />
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Pretraga…"
-                className="h-9 w-full rounded-full border border-line bg-surface pl-9 pr-8 text-xs shadow-[var(--shadow-card)] outline-none transition-all duration-200 focus:border-brand-500/50 focus:ring-2 focus:ring-brand-500/15"
-              />
-              {search && (
-                <button
-                  type="button"
-                  onClick={() => setSearch("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 grid h-5 w-5 place-items-center rounded-full text-faint hover:bg-surface-2 hover:text-ink"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              )}
-            </div>
+<div className="flex flex-col gap-2 md:hidden">
+  {/* Red 1: Pretraga i Sortiranje */}
+  <div className="flex items-center gap-2">
+    <div className="relative flex-1 min-w-0">
+      <Search className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-faint" />
+      <input
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Pretraga…"
+        className="h-9 w-full rounded-full border border-line bg-surface pl-9 pr-8 text-xs shadow-[var(--shadow-card)] outline-none transition-all duration-200 focus:border-brand-500/50 focus:ring-2 focus:ring-brand-500/15"
+      />
+      {search && (
+        <button
+          type="button"
+          onClick={() => setSearch("")}
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 grid h-5 w-5 place-items-center rounded-full text-faint hover:bg-surface-2 hover:text-ink"
+        >
+          <X className="h-3 w-3" />
+        </button>
+      )}
+    </div>
 
-            <div className="w-[125px] shrink-0">
-              <CustomFilterSelect
-                value={sortBy}
-                onChange={setSortBy}
-                placeholder="Sortiranje"
-                options={SORT_OPTIONS}
-                className="w-full"
-              />
-            </div>
-          </div>
+    {/* Sortiranje: Postavljen align="right" i osigurana širina */}
+    <div className="w-[125px] shrink-0 relative">
+      <CustomFilterSelect
+        value={sortBy}
+        onChange={setSortBy}
+        placeholder="Sortiranje"
+        options={SORT_OPTIONS}
+        className="w-full"
+        align="right"
+      />
+    </div>
+  </div>
 
-          {/* Red 2: Prioritet i Zaposleni jedno pored drugog */}
-          <div className="grid grid-cols-2 gap-2">
-            <CustomFilterSelect
-              value={filterPriority}
-              onChange={setFilterPriority}
-              placeholder="Prioritet"
-              options={PRIORITIES}
-              className="w-full"
-            />
-            <CustomFilterSelect
-              value={filterAssignee}
-              onChange={setFilterAssignee}
-              placeholder="Zaposleni"
-              options={assigneeOptions}
-              className="w-full"
-            />
-          </div>
+  {/* Red 2: Prioritet i Zaposleni jedno pored drugog */}
+  <div className="grid grid-cols-2 gap-2">
+    <div className="min-w-0 relative">
+      <CustomFilterSelect
+        value={filterPriority}
+        onChange={setFilterPriority}
+        placeholder="Prioritet"
+        options={PRIORITIES}
+        className="w-full"
+      />
+    </div>
+    
+    {/* Zaposleni je u desnoj koloni, pa se meni sidri uz desnu ivicu */}
+    <div className="min-w-0 relative">
+      <CustomFilterSelect
+        value={filterAssignee}
+        onChange={setFilterAssignee}
+        placeholder="Zaposleni"
+        options={assigneeOptions}
+        className="w-full"
+        align="right"
+      />
+    </div>
+  </div>
 
-          {(filterPriority || filterAssignee || search || sortBy) && (
-            <div className="flex justify-end pt-1">
-              <button
-                type="button"
-                onClick={() => {
-                  setFilterPriority("");
-                  setFilterAssignee("");
-                  setSearch("");
-                  setSortBy("");
-                }}
-                className="rounded-full bg-surface-2 px-3 py-1 text-[11px] font-semibold text-faint hover:text-ink transition-colors active:scale-95 border border-line/60"
-              >
-                Poništi filtere
-              </button>
-            </div>
-          )}
-        </div>
+  {(filterPriority || filterAssignee || search || sortBy) && (
+    <div className="flex justify-end pt-1">
+      <button
+        type="button"
+        onClick={() => {
+          setFilterPriority("");
+          setFilterAssignee("");
+          setSearch("");
+          setSortBy("");
+        }}
+        className="rounded-full bg-surface-2 px-3 py-1 text-[11px] font-semibold text-faint hover:text-ink transition-colors active:scale-95 border border-line/60"
+      >
+        Poništi filtere
+      </button>
+    </div>
+  )}
+</div>
       </div>
 
       <div className="flex-1 overflow-hidden pt-4">

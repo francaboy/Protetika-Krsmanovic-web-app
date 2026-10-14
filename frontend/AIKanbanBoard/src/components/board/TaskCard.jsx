@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Calendar, Archive, CheckCircle2, Stethoscope } from "lucide-react";
@@ -11,9 +11,20 @@ const TaskCard = ({ task, columnTitle = "", onArchive, onClick, overlay = false 
     return null;
   }
 
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" ? window.innerWidth < 768 : false
+  );
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
     data: { type: "task", task },
+    disabled: isMobile, // Potpuno isključen drag na mobilnim uređajima
   });
 
   const style = {
@@ -58,7 +69,7 @@ const TaskCard = ({ task, columnTitle = "", onArchive, onClick, overlay = false 
       ref={setNodeRef}
       style={style}
       {...attributes}
-      {...listeners}
+      {...(!isMobile ? listeners : {})}
       data-context-type="task"
       data-context-data={JSON.stringify({
         id: task.id,
@@ -75,9 +86,13 @@ const TaskCard = ({ task, columnTitle = "", onArchive, onClick, overlay = false 
         if (!isDragging) onClick?.(task);
       }}
       className={cn(
-        "group relative select-none rounded-2xl border bg-surface p-3.5 sm:p-4 transition-all duration-200 active:scale-[0.985]",
+        "group relative select-none rounded-2xl border bg-surface p-3.5 sm:p-4 transition-all duration-200 active:scale-[0.985] touch-pan-y",
         "shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-soft)]",
-        isDragging ? "cursor-grabbing opacity-30 pointer-events-none" : "cursor-grab active:cursor-grabbing",
+        isMobile
+          ? "cursor-pointer"
+          : isDragging
+          ? "cursor-grabbing opacity-30 pointer-events-none"
+          : "cursor-grab active:cursor-grabbing",
         isDone ? "border-emerald-500/25 bg-emerald-500/[0.02]" : "border-line",
         overlay && "rotate-2 cursor-grabbing shadow-[var(--shadow-lift)] ring-2 ring-brand-500/20"
       )}
