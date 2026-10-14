@@ -1,631 +1,472 @@
-import { useState, useMemo, useEffect } from "react";
-import {
-  Zap,
-  Pencil,
-  Archive,
-  LayoutDashboard,
-  BarChart3,
-  CheckSquare,
-  Calendar,
-  Users,
-  Settings,
-  ChevronLeft,
-  ChevronRight,
-  HelpCircle,
-  LogOut,
-  Trash2,
-  X,
-  Wifi,
-  WifiOff,
-  Clock,
-  Activity,
-} from "lucide-react";
-import { NavLink, useNavigate, useLocation } from "react-router-dom";
+import { useState, useEffect, useRef, useMemo } from "react";
 import toast from "react-hot-toast";
-import { useBoards } from "../../context/BoardsContext";
-import { useAuth } from "../../context/AuthContext";
-import { getSocket } from "../../lib/socket";
-import Avatar from "../ui/Avatar";
+import { Trash2, ChevronDown, Check } from "lucide-react";
 import Modal from "../ui/Modal";
 import Button from "../ui/Button";
-import { Input } from "../ui/Input";
 import ConfirmDialog from "../ui/ConfirmDialog";
-import { cn } from "../../lib/utils";
+import { Input, Textarea } from "../ui/Input";
+import DatePicker from "../ui/DatePicker";
+import Avatar from "../ui/Avatar";
+import { PRIORITIES, priorityMeta, cn } from "../../lib/utils";
+import { useBoards } from "../../context/BoardsContext";
 
-const MONTH_NAMES = [
-  "Januar", "Februar", "Mart", "April", "Maj", "Jun",
-  "Jul", "Avgust", "Septembar", "Oktobar", "Novembar", "Decembar"
-];
-
-const SectionLabel = ({ children, collapsed, hideOnCollapsed }) => {
-  if (collapsed) {
-    return hideOnCollapsed ? null : <div className="mx-auto my-1.5 h-px w-6 bg-line" />;
-  }
-  return (
-    <p className="px-4 pb-1 pt-2 text-[11.5px] font-semibold uppercase tracking-[0.12em] text-faint">
-      {children}
-    </p>
-  );
+const toDateInput = (value) => {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toISOString().slice(0, 10);
 };
 
-const NavItem = ({ to, icon: Icon, label, collapsed, badge, animClass, onClick }) => (
-  <NavLink
-    to={to}
-    onClick={onClick}
-    title={collapsed ? label : undefined}
-    className={({ isActive }) =>
-      cn(
-        "group relative flex h-9.5 items-center rounded-2xl text-[13.5px] font-medium transition-all duration-200",
-        collapsed ? "mx-auto w-9.5 justify-center" : "gap-2.5 px-3",
-        isActive
-          ? "bg-brand-50 font-semibold text-brand-700 shadow-sm"
-          : "text-muted hover:bg-surface-2 hover:text-ink"
-      )
-    }
-  >
-    {({ isActive }) => (
-      <>
-        {isActive && !collapsed && (
-          <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-brand-500 shadow-sm" />
-        )}
-        <Icon
-          className={cn(
-            "h-4.5 w-4.5 shrink-0 transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
-            isActive ? "text-brand-600" : "text-muted group-hover:text-ink",
-            animClass
-          )}
-        />
-        {!collapsed && <span className="flex-1 truncate text-[12.5px] sm:text-[13.5px]">{label}</span>}
-        {!collapsed && badge != null && (
-          <span className="rounded-full bg-ink px-1.5 py-0.5 text-[10.5px] font-bold tabular text-bg">
-            {badge}
-          </span>
-        )}
-      </>
-    )}
-  </NavLink>
-);
+const extractDoctor = (task) => {
+  if (!task) return "";
+  if (task.doctor) return task.doctor;
+  if (task.doctor_name) return task.doctor_name;
+  const match = task.description?.match(/^Doktor:\s*([^\n\r]+)/i);
+  return match ? match[1].trim() : "";
+};
 
-const PHASE_ORDER = ["priprema", "print", "izrada", "završen"];
+const extractCleanDescription = (desc) => {
+  if (!desc) return "";
+  return desc.replace(/^Doktor:\s*[^\n\r]+[\n\r]*/i, "").trim();
+};
 
-const Sidebar = ({ collapsed, onToggle, onCreateBoard, onCommand, mobileOpen, setMobileOpen }) => {
-  const { boards = [], loading, remove, update } = useBoards();
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
+const empty = (boardId, columnId) => ({
+  title: "",
+  doctor: "",
+  description: "",
+  priority: "medium",
+  due_date: "",
+  assignee_id: "",
+  board_id: boardId ? String(boardId) : "",
+  column_id: columnId || "",
+});
 
-  const isSuperAdmin = user?.role === "owner";
-
-  const [boardToDelete, setBoardToDelete] = useState(null);
-  const [boardToRename, setBoardToRename] = useState(null);
-  const [newTitle, setNewTitle] = useState("");
-  const [savingRename, setSavingRename] = useState(false);
-
-  // Real-time podaci za mobilni prikaz
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [latency, setLatency] = useState(18);
+const CustomSelect = ({ label, value, onChange, placeholder, options, renderOption, renderSelected, disabled }) => {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
 
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
+    const handleOutside = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) {
+        setOpen(false);
+      }
     };
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
   }, []);
 
-  useEffect(() => {
-    const socket = getSocket();
-    if (!socket) return;
+  const selectedOption = options.find((o) => String(o.value) === String(value));
 
-    const pingInterval = setInterval(() => {
-      if (socket.connected) {
-        const start = Date.now();
-        socket.volatile.emit("ping", () => {
-          setLatency(Date.now() - start);
-        });
-      }
-    }, 10000);
-
-    return () => clearInterval(pingInterval);
-  }, []);
-
-  const sortedBoards = useMemo(() => {
-    return [...boards].sort((a, b) => {
-      const titleA = (a.title || "").toLowerCase();
-      const titleB = (b.title || "").toLowerCase();
-
-      const indexA = PHASE_ORDER.findIndex((p) => titleA.includes(p));
-      const indexB = PHASE_ORDER.findIndex((p) => titleB.includes(p));
-
-      if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-      if (indexA !== -1) return -1;
-      if (indexB !== -1) return 1;
-
-      return (a.position || 0) - (b.position || 0);
-    });
-  }, [boards]);
-
-  const handleDeleteConfirm = async () => {
-    if (!boardToDelete) return;
-    if (!isSuperAdmin) {
-      toast.error("Samo Super Admin može obrisati fazu rada.");
-      setBoardToDelete(null);
-      return;
-    }
-
-    try {
-      await remove(boardToDelete.id);
-      if (
-        location.pathname === `/rad/${boardToDelete.id}` ||
-        location.pathname === `/board/${boardToDelete.id}`
-      ) {
-        navigate("/pocetna");
-      }
-      toast.success("Faza rada je obrisana");
-    } catch (err) {
-      toast.error(err.message || "Greška prilikom brisanja faze rada");
-    } finally {
-      setBoardToDelete(null);
-    }
-  };
-
-  const handleOpenRename = (e, b) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setBoardToRename(b);
-    setNewTitle(b.title || "");
-  };
-
-  const handleRenameSubmit = async (e) => {
-    e.preventDefault();
-    const clean = newTitle.trim();
-    if (!clean) return toast.error("Naziv faze rada ne može biti prazan");
-    if (clean === boardToRename.title) {
-      setBoardToRename(null);
-      return;
-    }
-
-    setSavingRename(true);
-    try {
-      await update(boardToRename.id, { title: clean });
-      toast.success("Naziv faze rada je promijenjen");
-      setBoardToRename(null);
-    } catch (err) {
-      toast.error(err.message || "Greška pri preimenovanju faze rada");
-    } finally {
-      setSavingRename(false);
-    }
-  };
-
-  const formattedTime = currentTime.toLocaleTimeString("sr-RS", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
-
-  const formattedDate = `${currentTime.getDate()}. ${MONTH_NAMES[currentTime.getMonth()]} ${currentTime.getFullYear()}.`;
-
-  const sidebarContent = (isMobile = false) => (
-    <div className="flex flex-col h-full w-full min-h-0 overflow-hidden">
-      {/* 1. Header */}
-      <div className="flex h-14 sm:h-16 items-center gap-2.5 px-3.5 shrink-0 border-b border-line/40">
-        <div className="brand-gradient grid h-9 w-9 sm:h-10 sm:w-10 shrink-0 place-items-center rounded-2xl shadow-[var(--shadow-brand)] transition-transform duration-300 hover:scale-105">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-5 w-5 text-white"
-            aria-hidden="true"
-          >
-            <path d="M7 3C4.24 3 2 5.24 2 8c0 3.5 1.5 6 3 9.5 1.2 2.8 2.5 3.5 4 3.5s2.3-.8 3-3c.7 2.2 1.5 3 3 3s2.8-.7 4-3.5c1.5-3.5 3-6 3-9.5 0-2.76-2.24-5-5-5-2 0-3.5 1.2-5 1.2S9 3 7 3z" />
-          </svg>
-        </div>
-        {(!collapsed || isMobile) && (
-          <span className="flex-1 truncate font-display text-[16.5px] sm:text-[17.5px] font-bold tracking-tight text-ink">
-            Kontrolna tabla
-          </span>
-        )}
-        {isMobile ? (
-          <button
-            type="button"
-            onClick={() => setMobileOpen(false)}
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-xl text-faint transition-all duration-200 hover:bg-surface-2 hover:text-ink active:scale-90"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        ) : (
-          !collapsed && (
-            <button
-              type="button"
-              onClick={onToggle}
-              title="Sakrij bočnu traku"
-              className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-faint transition-colors hover:bg-surface-2 hover:text-ink"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-          )
-        )}
-      </div>
-
-      {collapsed && !isMobile && (
-        <div className="flex justify-center pb-1 pt-2 shrink-0">
-          <button
-            type="button"
-            onClick={onToggle}
-            title="Proširi bočnu traku"
-            className="grid h-7 w-7 place-items-center rounded-lg text-faint transition-colors hover:bg-surface-2 hover:text-ink"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
-      )}
-
-      {/* 2. Skrolabilna unutrašnjost - sa glatkim overflow-om */}
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-1 py-1 touch-pan-y">
-        <SectionLabel collapsed={collapsed && !isMobile} hideOnCollapsed={!isMobile}>
-          Menu
-        </SectionLabel>
-        <nav className="space-y-0.5 px-2">
-          <NavItem
-            to="/pocetna"
-            icon={LayoutDashboard}
-            label="Početna"
-            collapsed={collapsed && !isMobile}
-            animClass="group-hover:scale-110 group-hover:-rotate-3"
-            onClick={() => isMobile && setMobileOpen(false)}
-          />
-          <NavItem
-            to="/analitika"
-            icon={BarChart3}
-            label="Analitika"
-            collapsed={collapsed && !isMobile}
-            animClass="group-hover:scale-110 group-hover:translate-y-[-2px]"
-            onClick={() => isMobile && setMobileOpen(false)}
-          />
-          <NavItem
-            to="/pacijenti"
-            icon={CheckSquare}
-            label="Pacijenti"
-            collapsed={collapsed && !isMobile}
-            animClass="group-hover:scale-115 group-hover:rotate-6"
-            onClick={() => isMobile && setMobileOpen(false)}
-          />
-          <NavItem
-            to="/arhiva"
-            icon={Archive}
-            label="Arhiva"
-            collapsed={collapsed && !isMobile}
-            animClass="group-hover:-translate-y-1 group-hover:scale-105"
-            onClick={() => isMobile && setMobileOpen(false)}
-          />
-          <NavItem
-            to="/kalendar"
-            icon={Calendar}
-            label="Kalendar"
-            collapsed={collapsed && !isMobile}
-            animClass="group-hover:scale-110 group-hover:rotate-12"
-            onClick={() => isMobile && setMobileOpen(false)}
-          />
-          <NavItem
-            to="/zaposleni"
-            icon={Users}
-            label="Zaposleni"
-            collapsed={collapsed && !isMobile}
-            animClass="group-hover:scale-110 group-hover:translate-x-0.5"
-            onClick={() => isMobile && setMobileOpen(false)}
-          />
-        </nav>
-
-        <div className="mx-auto my-1.5 h-px w-6 bg-line/60" />
-
-        {/* Brzi pregled radova */}
-        <div
+  return (
+    <div className="space-y-1.5" ref={ref}>
+      {label && <label className="block text-xs font-semibold text-ink">{label}</label>}
+      <div className="relative">
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => !disabled && setOpen((prev) => !prev)}
           className={cn(
-            "group/quick flex h-7.5 items-center rounded-2xl font-medium text-muted transition-colors duration-200",
-            collapsed && !isMobile ? "hidden" : "px-3"
+            "flex h-10 w-full items-center justify-between gap-2 rounded-xl border border-line bg-surface px-3 text-xs text-ink shadow-[var(--shadow-card)] transition-all duration-200 active:scale-[0.99]",
+            "hover:border-brand-500/40 hover:shadow-[var(--shadow-soft)]",
+            open && "border-brand-500 ring-2 ring-brand-500/15",
+            disabled && "cursor-not-allowed opacity-60"
           )}
         >
-          {(!collapsed || isMobile) && (
-            <div className="flex items-center gap-1.5">
-              <Zap className="h-3.5 w-3.5 fill-none stroke-brand-600 transition-transform duration-300 group-hover/quick:scale-125 group-hover/quick:rotate-12" />
-              <span className="text-[10.5px] sm:text-[11.5px] font-semibold uppercase tracking-[0.12em] text-faint">
-                Brzi Pregled Radova
-              </span>
-            </div>
-          )}
-        </div>
+          <div className="flex min-w-0 items-center gap-2">
+            {selectedOption ? (
+              renderSelected ? (
+                renderSelected(selectedOption)
+              ) : (
+                <span className="truncate font-medium">{selectedOption.label}</span>
+              )
+            ) : (
+              <span className="truncate text-muted">{placeholder}</span>
+            )}
+          </div>
+          <ChevronDown
+            className={cn(
+              "h-4 w-4 shrink-0 text-faint transition-transform duration-200",
+              open && "rotate-180 text-brand-600"
+            )}
+          />
+        </button>
 
-        {/* Lista faza rada */}
-        <div className="mt-0.5 space-y-0.5 px-2 pb-1">
-          {loading ? (
-            Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className={cn("flex h-8.5 items-center gap-3", collapsed && !isMobile ? "justify-center" : "px-1")}>
-                <div className="skeleton h-4.5 w-4.5 shrink-0 rounded-lg" />
-                {(!collapsed || isMobile) && <div className="skeleton h-3 flex-1 rounded" />}
-              </div>
-            ))
-          ) : sortedBoards.length === 0 ? (
-            (!collapsed || isMobile) && <p className="px-3 py-1 text-[11.5px] text-faint">Nemate još faza rada</p>
-          ) : (
-            sortedBoards.map((b) => {
-              const color = b.color || "#2f8159";
+        {open && !disabled && (
+          <div className="card absolute left-0 right-0 z-50 mt-1.5 max-h-56 overflow-y-auto rounded-2xl border border-line bg-surface p-1 shadow-[var(--shadow-lift)] no-scrollbar animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-150 ease-out">
+            {options.map((opt) => {
+              const active = String(opt.value) === String(value);
               return (
                 <div
-                  key={b.id}
-                  className="group/board relative flex h-8.5 w-full items-center rounded-2xl transition-colors duration-200 hover:bg-surface-2"
-                >
-                  <NavLink
-                    to={`/rad/${b.id}`}
-                    onClick={() => isMobile && setMobileOpen(false)}
-                    title={b.title}
-                    className={({ isActive }) =>
-                      cn(
-                        "flex h-full min-w-0 flex-1 items-center gap-2.5 rounded-2xl text-[12.5px] sm:text-[13.5px] transition-colors",
-                        collapsed && !isMobile ? "justify-center px-0" : "pl-2 pr-1",
-                        isActive ? "bg-brand-50 font-medium text-brand-700" : "text-muted hover:text-ink"
-                      )
-                    }
-                  >
-                    {collapsed && !isMobile ? (
-                      <span
-                        className="h-2.5 w-2.5 shrink-0 rounded-full shadow-sm transition-transform duration-200 group-hover/board:scale-125"
-                        style={{ backgroundColor: color }}
-                      />
-                    ) : (
-                      <span
-                        className="grid h-4.5 w-4.5 shrink-0 place-items-center rounded-lg border shadow-sm transition-transform duration-200 group-hover/board:scale-110"
-                        style={{
-                          backgroundColor: `${color}20`,
-                          borderColor: `${color}40`,
-                        }}
-                      >
-                        <span
-                          className="h-1.5 w-1.5 rounded-sm"
-                          style={{ backgroundColor: color }}
-                        />
-                      </span>
-                    )}
-
-                    {(!collapsed || isMobile) && (
-                      <span className="min-w-0 flex-1 truncate">{b.title}</span>
-                    )}
-                  </NavLink>
-
-                  {(!collapsed || isMobile) && (
-                    <div className="flex w-12 shrink-0 items-center justify-end pr-1.5">
-                      <span className="text-right text-[10.5px] font-semibold tabular text-faint group-hover/board:hidden">
-                        {b.task_count ?? 0}
-                      </span>
-
-                      <div className="hidden items-center gap-1 group-hover/board:flex">
-                        <button
-                          type="button"
-                          onClick={(e) => handleOpenRename(e, b)}
-                          title="Izmijenite naziv"
-                          className="flex h-5 w-5 items-center justify-center rounded-lg p-0.5 text-faint transition-all hover:bg-surface hover:text-ink hover:scale-110"
-                        >
-                          <Pencil className="h-3 w-3" />
-                        </button>
-
-                        {isSuperAdmin && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setBoardToDelete(b);
-                            }}
-                            title="Obrišite fazu rada"
-                            className="flex h-5 w-5 items-center justify-center rounded-lg p-0.5 text-faint transition-all hover:bg-priority-urgent/10 hover:text-priority-urgent hover:scale-110"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
+                  key={opt.value}
+                  onClick={() => {
+                    onChange(opt.value);
+                    setOpen(false);
+                  }}
+                  className={cn(
+                    "flex cursor-pointer items-center justify-between gap-2 rounded-xl px-2.5 py-2 text-xs transition-all duration-150 active:scale-[0.98]",
+                    active
+                      ? "bg-brand-50 font-semibold text-brand-700"
+                      : "text-ink hover:bg-surface-2"
                   )}
+                >
+                  <div className="flex min-w-0 items-center gap-2">
+                    {renderOption ? renderOption(opt) : <span className="truncate">{opt.label}</span>}
+                  </div>
+                  {active && <Check className="h-3.5 w-3.5 shrink-0 text-brand-600" />}
                 </div>
               );
-            })
-          )}
-        </div>
-
-        <div className="mx-auto my-1.5 h-px w-6 bg-line/60" />
-
-        <SectionLabel collapsed={collapsed && !isMobile} hideOnCollapsed={!isMobile}>
-          Generalne opcije
-        </SectionLabel>
-        <nav className="space-y-0.5 px-2 pb-2">
-          <NavItem
-            to="/podesavanja"
-            icon={Settings}
-            label="Podešavanja"
-            collapsed={collapsed && !isMobile}
-            animClass="group-hover:rotate-45 group-hover:scale-110"
-            onClick={() => isMobile && setMobileOpen(false)}
-          />
-          <button
-            type="button"
-            onClick={() => {
-              if (isMobile) setMobileOpen(false);
-              onCommand?.();
-            }}
-            title={collapsed && !isMobile ? "Pretraga & prečice" : undefined}
-            className={cn(
-              "group flex h-9.5 w-full items-center rounded-2xl text-[12.5px] sm:text-[13.5px] font-medium text-muted transition-colors duration-200 hover:bg-surface-2 hover:text-ink",
-              collapsed && !isMobile ? "mx-auto w-9.5 justify-center" : "gap-2.5 px-3"
-            )}
-          >
-            <HelpCircle className="h-4.5 w-4.5 shrink-0 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-12" />
-            {(!collapsed || isMobile) && <span className="flex-1 truncate text-left">Pomoć & pretraga</span>}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              logout();
-              navigate("/prijava");
-            }}
-            title={collapsed && !isMobile ? "Odjavi se" : undefined}
-            className={cn(
-              "group flex h-9.5 w-full items-center rounded-2xl text-[12.5px] sm:text-[13.5px] font-medium text-muted transition-colors duration-200 hover:bg-priority-urgent/10 hover:text-priority-urgent",
-              collapsed && !isMobile ? "mx-auto w-9.5 justify-center" : "gap-2.5 px-3"
-            )}
-          >
-            <LogOut className="h-4.5 w-4.5 shrink-0 transition-transform duration-300 group-hover:-translate-x-1 group-hover:scale-105" />
-            {(!collapsed || isMobile) && <span className="flex-1 truncate text-left">Odjavite se</span>}
-          </button>
-        </nav>
-      </div>
-
-      {/* 3. Donji fiksni blok */}
-      <div className="border-t border-line/60 p-2 sm:p-2.5 shrink-0 space-y-1.5 bg-surface">
-        <div
-          onClick={() => {
-            if (isMobile) setMobileOpen(false);
-            navigate("/podesavanja");
-          }}
-          className={cn(
-            "flex h-10 cursor-pointer items-center rounded-2xl transition-all duration-200 hover:bg-surface-2",
-            collapsed && !isMobile ? "justify-center px-1" : "gap-2.5 px-2"
-          )}
-        >
-          <Avatar
-            name={user?.name}
-            id={user?.id}
-            src={user?.avatar_url}
-            size="sm"
-            className="shrink-0 transition-transform duration-200 hover:scale-105"
-          />
-          {(!collapsed || isMobile) && (
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[12.5px] font-semibold text-ink leading-tight">{user?.name}</p>
-              <p className="truncate text-[10.5px] text-faint mt-0.5">{user?.email}</p>
-            </div>
-          )}
-        </div>
-
-        {isMobile && (
-          <div className="rounded-2xl border border-line/80 bg-surface-2/60 p-2 shadow-sm space-y-1.5">
-            <div className="flex items-center justify-between border-b border-line/50 pb-1">
-              <div className="flex items-center gap-1.5 text-ink">
-                <Clock className="h-3 w-3 text-brand-600 animate-pulse" />
-                <span className="font-mono text-[11.5px] font-bold tracking-tight tabular">
-                  {formattedTime}
-                </span>
-              </div>
-              <span className="text-[10.5px] font-semibold text-ink/80">
-                {formattedDate}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between text-[10.5px]">
-              <div className="flex items-center gap-1.5">
-                {isOnline ? (
-                  <>
-                    <Wifi className="h-3 w-3 text-emerald-500" />
-                    <span className="font-medium text-ink">Online</span>
-                  </>
-                ) : (
-                  <>
-                    <WifiOff className="h-3 w-3 text-rose-500" />
-                    <span className="font-medium text-rose-600">Offline</span>
-                  </>
-                )}
-              </div>
-
-              <div className="flex items-center gap-1 font-mono text-[9.5px] text-muted">
-                <Activity className="h-2.5 w-2.5 text-brand-600" />
-                <span>{isOnline ? `${latency}ms` : "--"}</span>
-              </div>
-            </div>
+            })}
           </div>
         )}
       </div>
     </div>
   );
+};
+
+const PHASE_ORDER = [
+  "priprema",
+  "print",
+  "izrada",
+  "frezovanj",
+  "slojevanj",
+  "završen",
+  "završetak",
+  "isporuk",
+];
+
+const TaskModal = ({
+  open,
+  onClose,
+  task,
+  boardId,
+  defaultBoardId,
+  defaultColumnId,
+  columns,
+  members = [],
+  actions,
+}) => {
+  const isEdit = Boolean(task);
+  const { boards = [] } = useBoards();
+
+  const boardOptions = useMemo(() => {
+    return [...(boards || [])]
+      .sort((a, b) => {
+        const titleA = (a.title || "").toLowerCase();
+        const titleB = (b.title || "").toLowerCase();
+
+        const indexA = PHASE_ORDER.findIndex((p) => titleA.includes(p));
+        const indexB = PHASE_ORDER.findIndex((p) => titleB.includes(p));
+
+        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+        if (indexA !== -1) return -1;
+        if (indexB !== -1) return 1;
+
+        return (a.position || 0) - (b.position || 0);
+      })
+      .map((b) => ({
+        value: String(b.id),
+        label: b.title,
+        color: b.color || "#2f8159",
+      }));
+  }, [boards]);
+
+  // Ako je proslijeđen defaultBoardId ili boardId, uzimamo njega kao prioritet
+  const resolvedBoardId = useMemo(() => {
+    if (task?.board_id) return String(task.board_id);
+    if (defaultBoardId) return String(defaultBoardId);
+    if (boardId) return String(boardId);
+    return boardOptions[0]?.value || "";
+  }, [task, defaultBoardId, boardId, boardOptions]);
+
+  const [form, setForm] = useState(empty(resolvedBoardId, defaultColumnId));
+  const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    if (task) {
+      setForm({
+        title: task.title || "",
+        doctor: extractDoctor(task),
+        description: extractCleanDescription(task.description),
+        priority: task.priority || "medium",
+        due_date: toDateInput(task.due_date),
+        assignee_id: task.assignee_id ? String(task.assignee_id) : "",
+        board_id: task.board_id ? String(task.board_id) : resolvedBoardId,
+        column_id: task.column_id,
+      });
+    } else {
+      setForm(empty(resolvedBoardId, defaultColumnId || columns?.[0]?.id));
+    }
+  }, [open, task, defaultColumnId, columns, resolvedBoardId]);
+
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const setValue = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  const memberOptions = useMemo(() => {
+    return [
+      { value: "", label: "Nije izabrano" },
+      ...members.map((m) => ({
+        value: String(m.id),
+        label: m.name,
+        avatar: m.avatar_url,
+      })),
+    ];
+  }, [members]);
+
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.title.trim()) return toast.error("Ime i prezime pacijenta je obavezno polje");
+    setSaving(true);
+
+    const selectedMember = form.assignee_id
+      ? members.find((m) => String(m.id) === String(form.assignee_id))
+      : null;
+
+    const cleanDoctor = form.doctor.trim();
+    const cleanDesc = form.description.trim();
+
+    let combinedDescription = cleanDesc;
+    if (cleanDoctor) {
+      combinedDescription = cleanDesc ? `Doktor: ${cleanDoctor}\n\n${cleanDesc}` : `Doktor: ${cleanDoctor}`;
+    }
+
+    const payload = {
+      title: form.title.trim(),
+      doctor: cleanDoctor || null,
+      doctor_name: cleanDoctor || null,
+      description: combinedDescription || null,
+      priority: form.priority,
+      due_date: form.due_date || null,
+      assignee_id: selectedMember ? selectedMember.id : null,
+      assignee_name: selectedMember ? selectedMember.name : null,
+      assignee_avatar: selectedMember ? selectedMember.avatar_url : null,
+      target_board_id: form.board_id,
+      board_id: form.board_id,
+    };
+
+    try {
+      if (isEdit) {
+        await actions.updateTask(task.id, payload);
+
+        if (form.board_id && String(form.board_id) !== String(task.board_id)) {
+          toast.success("Pacijent je prebačen u novu fazu rada!");
+        } else {
+          toast.success("Podaci o pacijentu su ažurirani");
+        }
+      } else {
+        await actions.createTask({
+          ...payload,
+          column_id: form.column_id || defaultColumnId,
+        });
+        toast.success("Pacijent je uspješno kreiran");
+      }
+      onClose();
+    } catch (err) {
+      toast.error(err.message || "Greška pri ažuriranju podataka o pacijentu");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    setDeleting(true);
+    try {
+      await actions.deleteTask(task.id);
+      toast.success("Pacijent je uspješno obrisan");
+      setConfirmDelete(false);
+      onClose();
+    } catch (err) {
+      toast.error(err.message || "Greška pri brisanju pacijenta");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
     <>
-      <aside
-        className={cn(
-          "fixed top-3 left-3 z-45 hidden md:flex flex-col rounded-3xl border border-line bg-surface/90 shadow-soft backdrop-blur-xl transition-[width] duration-300 ease-[var(--ease-spring)] select-none max-h-[calc(100vh-24px)] overflow-hidden",
-          collapsed ? "w-[72px]" : "w-[252px]"
-        )}
-      >
-        {sidebarContent(false)}
-      </aside>
-
-      {mobileOpen && (
-        <div className="fixed inset-0 z-50 flex items-stretch md:hidden">
-          <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 animate-in fade-in"
-            onClick={() => setMobileOpen(false)}
-          />
-          <div className="relative flex w-[295px] h-[calc(100dvh-24px)] my-auto ml-2.5 flex-col rounded-3xl border border-line bg-surface shadow-2xl z-10 animate-in slide-in-from-left duration-300 ease-out overflow-hidden">
-            {sidebarContent(true)}
-          </div>
-        </div>
-      )}
-
       <Modal
-        open={Boolean(boardToRename)}
-        onClose={() => !savingRename && setBoardToRename(null)}
-        title="Promjena naziva"
-        description="Unesite novi naziv za ovu fazu rada."
+        open={open}
+        onClose={() => !saving && onClose()}
+        title={isEdit ? "Izmjena pacijenta" : "Kreiranje novog pacijenta"}
+        size="md"
       >
-        <form onSubmit={handleRenameSubmit} className="space-y-4">
+        <form
+          onSubmit={onSubmit}
+          className="space-y-4 max-h-[calc(100dvh-120px)] sm:max-h-none overflow-y-auto overscroll-contain pr-1 touch-pan-y"
+        >
           <Input
-            label="Naziv faze rada"
-            value={newTitle}
-            disabled={savingRename}
-            onChange={(e) => setNewTitle(e.target.value)}
-            placeholder="Npr. Cirkonijumske krunice"
-            autoFocus
+            label="Ime i prezime pacijenta"
+            placeholder="Unesite ime i prezime pacijenta"
+            disabled={saving}
+            value={form.title}
+            onChange={set("title")}
           />
-          <div className="flex justify-end gap-2 pt-2">
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={savingRename}
-              onClick={() => setBoardToRename(null)}
-            >
-              Odustani
-            </Button>
-            <Button type="submit" loading={savingRename}>
-              Sačuvajte izmjene
-            </Button>
+
+          <div className="space-y-1.5">
+            <label className="flex items-center gap-1.5 block text-xs font-medium tracking-tight text-muted">
+              Ime i prezime doktora
+            </label>
+            <Input
+              placeholder="Unesite ime i prezime doktora"
+              disabled={saving}
+              value={form.doctor}
+              onChange={set("doctor")}
+            />
+          </div>
+
+          <Textarea
+            label="Napomene i uputstva za laboratoriju"
+            rows={3}
+            disabled={saving}
+            placeholder="Unesite detaljnija uputstva ili napomenu…"
+            value={form.description}
+            onChange={set("description")}
+          />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <CustomSelect
+              label="Prioritet"
+              value={form.priority}
+              disabled={saving}
+              onChange={(val) => setValue("priority", val)}
+              placeholder="Izaberite prioritet"
+              options={PRIORITIES}
+              renderSelected={(opt) => (
+                <div className="flex items-center gap-2">
+                  <span
+                    className="h-2 w-2 rounded-full shrink-0"
+                    style={{ backgroundColor: priorityMeta(opt.value).color }}
+                  />
+                  <span className="font-medium text-ink">{opt.label}</span>
+                </div>
+              )}
+              renderOption={(opt) => (
+                <div className="flex items-center gap-2">
+                  <span
+                    className="h-2 w-2 rounded-full shrink-0"
+                    style={{ backgroundColor: priorityMeta(opt.value).color }}
+                  />
+                  <span>{opt.label}</span>
+                </div>
+              )}
+            />
+            <DatePicker
+              label="Rok završetka"
+              value={form.due_date}
+              disabled={saving}
+              onChange={(val) => setValue("due_date", val)}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <CustomSelect
+              label="Izaberite radnika"
+              value={form.assignee_id}
+              disabled={saving}
+              onChange={(val) => setValue("assignee_id", val)}
+              placeholder="Lista radnika"
+              options={memberOptions}
+              renderSelected={(opt) =>
+                opt.value ? (
+                  <div className="flex items-center gap-2">
+                    <Avatar name={opt.label} src={opt.avatar} size="xs" />
+                    <span className="font-medium text-ink">{opt.label}</span>
+                  </div>
+                ) : (
+                  <span className="text-muted">{opt.label}</span>
+                )
+              }
+              renderOption={(opt) =>
+                opt.value ? (
+                  <div className="flex items-center gap-2">
+                    <Avatar name={opt.label} src={opt.avatar} size="xs" />
+                    <span>{opt.label}</span>
+                  </div>
+                ) : (
+                  <span className="text-muted">{opt.label}</span>
+                )
+              }
+            />
+
+            <CustomSelect
+              label="Faza rada"
+              value={form.board_id}
+              disabled={saving}
+              onChange={(val) => setValue("board_id", val)}
+              placeholder="Izaberite fazu"
+              options={boardOptions}
+              renderSelected={(opt) => (
+                <div className="flex items-center gap-2 min-w-0">
+                  <span
+                    className="h-2.5 w-2.5 rounded-full shrink-0 shadow-sm"
+                    style={{ backgroundColor: opt.color }}
+                  />
+                  <span className="truncate font-medium text-ink">{opt.label}</span>
+                </div>
+              )}
+              renderOption={(opt) => (
+                <div className="flex items-center gap-2 min-w-0">
+                  <span
+                    className="h-2.5 w-2.5 rounded-full shrink-0 shadow-sm"
+                    style={{ backgroundColor: opt.color }}
+                  />
+                  <span className="truncate">{opt.label}</span>
+                </div>
+              )}
+            />
+          </div>
+
+          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2">
+            <div>
+              {isEdit && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={saving}
+                  onClick={() => setConfirmDelete(true)}
+                  className="w-full sm:w-auto text-priority-urgent hover:bg-priority-urgent/10 active:scale-95"
+                >
+                  <Trash2 className="h-4 w-4" /> Obriši pacijenta
+                </Button>
+              )}
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button type="button" variant="secondary" onClick={onClose} disabled={saving} className="flex-1 sm:flex-initial active:scale-95">
+                Odustani
+              </Button>
+              <Button type="submit" loading={saving} className="flex-1 sm:flex-initial active:scale-95">
+                {isEdit ? "Sačuvaj izmjene" : "Dodaj pacijenta"}
+              </Button>
+            </div>
           </div>
         </form>
       </Modal>
 
-      {isSuperAdmin && (
-        <ConfirmDialog
-          open={Boolean(boardToDelete)}
-          onClose={() => setBoardToDelete(null)}
-          onConfirm={handleDeleteConfirm}
-          title="Da li ste sigurni?"
-          description={`“${boardToDelete?.title}” i svi vezani podaci biće trajno obrisani.`}
-          confirmLabel="Obriši"
-          danger
-        />
-      )}
+      <ConfirmDialog
+        open={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        onConfirm={async () => {
+          await handleDeleteConfirm();
+          setConfirmDelete(false);
+        }}
+        title={
+          <span className="block text-balance break-words leading-snug">
+            Da li želite obrisati pacijenta{" "}
+            <span className="font-bold text-ink underline decoration-priority-urgent/40 decoration-2">
+              {task?.title}
+            </span>
+            ?
+          </span>
+        }
+        description="Pacijent i svi prateći podaci biće trajno uklonjeni. Ova radnja se ne može poništiti."
+        confirmLabel="Obriši pacijenta"
+        danger
+        loading={deleting}
+      />
     </>
   );
 };
 
-export default Sidebar;
+export default TaskModal;
