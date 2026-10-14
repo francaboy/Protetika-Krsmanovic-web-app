@@ -2,9 +2,13 @@ import { forwardRef } from "react";
 import { Loader2 } from "lucide-react";
 import { cn } from "../../lib/utils";
 
+// U Button.jsx dodaj ove klase u osnovni niz (baseClasses / default):
+const base = "relative isolate inline-flex items-center justify-center font-semibold transition-all duration-200 select-none overflow-hidden shrink-0 whitespace-nowrap active:scale-[0.98]";
+
+// A tvoje variante ostaju čiste:
 const variants = {
   primary:
-    "brand-gradient text-white hover:brightness-[1.07] hover:shadow-[0_14px_34px_rgba(36,102,70,0.45)]",
+    "brand-gradient text-white hover:brightness-[1.07]",
   secondary:
     "bg-surface hover:bg-surface-2 text-ink border border-line shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-soft)]",
   ghost: "hover:bg-surface-2 text-muted hover:text-ink",

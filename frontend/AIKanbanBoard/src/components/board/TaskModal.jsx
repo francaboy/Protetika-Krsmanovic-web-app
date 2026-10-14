@@ -4,7 +4,7 @@ import { Trash2, ChevronDown, Check } from "lucide-react";
 import Modal from "../ui/Modal";
 import Button from "../ui/Button";
 import ConfirmDialog from "../ui/ConfirmDialog";
-import { Input, Textarea } from "../ui/Input";
+import { Input } from "../ui/Input";
 import DatePicker from "../ui/DatePicker";
 import Avatar from "../ui/Avatar";
 import { PRIORITIES, priorityMeta, cn } from "../../lib/utils";
@@ -62,7 +62,7 @@ const CustomSelect = ({ label, value, onChange, placeholder, options, renderOpti
   const selectedOption = options.find((o) => String(o.value) === String(value));
 
   return (
-    <div className="space-y-1.5" ref={ref}>
+    <div className="space-y-1.5 min-w-0 w-full" ref={ref}>
       {label && <label className="block text-xs font-semibold text-ink">{label}</label>}
       <div className="relative">
         <button
@@ -97,7 +97,7 @@ const CustomSelect = ({ label, value, onChange, placeholder, options, renderOpti
 
         {open && !disabled && (
           <div className="card absolute left-0 right-0 z-50 mt-1.5 overflow-hidden rounded-2xl border border-line bg-surface shadow-[var(--shadow-lift)] animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-150 ease-out">
-            <div className="max-h-52 overflow-y-auto overscroll-contain p-1.5 space-y-0.5 [scrollbar-width:thin] [scrollbar-color:rgba(0,0,0,0.15)_transparent]">
+            <div className="max-h-52 overflow-y-auto overscroll-contain p-1.5 space-y-0.5 scrollbar-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {options.map((opt) => {
                 const active = String(opt.value) === String(value);
                 return (
@@ -297,19 +297,22 @@ const TaskModal = ({
         title={isEdit ? "Izmjena pacijenta" : "Kreiranje novog pacijenta"}
         size="md"
       >
-        <form
-          onSubmit={onSubmit}
-          className="space-y-4 max-h-[calc(100dvh-130px)] sm:max-h-none overflow-y-auto overscroll-contain px-1 py-1 touch-pan-y [scrollbar-width:thin] [scrollbar-color:rgba(0,0,0,0.12)_transparent]"
-        >
-          <Input
-            label="Ime i prezime pacijenta"
-            placeholder="Unesite ime i prezime pacijenta"
-            disabled={saving}
-            value={form.title}
-            onChange={set("title")}
-          />
+        {/* GLAVNI FORM ELEMENT - striktno zaključana horizontalna širina bez prelivanja */}
+       <form
+  onSubmit={onSubmit}
+  className="space-y-4 w-full max-w-full px-0.5 py-1 touch-pan-y max-h-[calc(100dvh-120px)] overflow-y-auto sm:overflow-visible sm:max-h-none scrollbar-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+>
+          <div className="w-full min-w-0">
+            <Input
+              label="Ime i prezime pacijenta"
+              placeholder="Unesite ime i prezime pacijenta"
+              disabled={saving}
+              value={form.title}
+              onChange={set("title")}
+            />
+          </div>
 
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 w-full min-w-0">
             <label className="flex items-center gap-1.5 block text-xs font-medium tracking-tight text-muted">
               Ime i prezime doktora
             </label>
@@ -321,23 +324,23 @@ const TaskModal = ({
             />
           </div>
 
-          <div className="space-y-1.5">
-  <label className="block text-xs font-semibold text-ink">
-    Napomene i uputstva za laboratoriju
-  </label>
-  <div className="relative w-full overflow-hidden rounded-2xl border border-line bg-surface p-1 shadow-[var(--shadow-card)] transition-all duration-200 focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/15 hover:border-brand-500/40">
-    <textarea
-      rows={3}
-      disabled={saving}
-      placeholder="Unesite detaljnija uputstva ili napomenu…"
-      value={form.description}
-      onChange={set("description")}
-      className="w-full bg-transparent px-3 py-2 text-xs text-ink placeholder:text-muted outline-none resize-none overscroll-contain scrollbar-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden touch-pan-y"
-    />
-  </div>
-</div>
+          <div className="space-y-1.5 w-full min-w-0">
+            <label className="block text-xs font-semibold text-ink">
+              Napomene i uputstva za laboratoriju
+            </label>
+            <div className="relative w-full overflow-hidden rounded-2xl border border-line bg-surface p-1 shadow-[var(--shadow-card)] transition-all duration-200 focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/15 hover:border-brand-500/40">
+              <textarea
+                rows={3}
+                disabled={saving}
+                placeholder="Unesite detaljnija uputstva ili napomenu…"
+                value={form.description}
+                onChange={set("description")}
+                className="w-full bg-transparent px-3 py-2 text-xs text-ink placeholder:text-muted outline-none resize-none overscroll-contain scrollbar-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden touch-pan-y"
+              />
+            </div>
+          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 w-full min-w-0">
             <CustomSelect
               label="Prioritet"
               value={form.priority}
@@ -364,15 +367,17 @@ const TaskModal = ({
                 </div>
               )}
             />
-            <DatePicker
-              label="Rok završetka"
-              value={form.due_date}
-              disabled={saving}
-              onChange={(val) => setValue("due_date", val)}
-            />
+            <div className="w-full min-w-0">
+              <DatePicker
+                label="Rok završetka"
+                value={form.due_date}
+                disabled={saving}
+                onChange={(val) => setValue("due_date", val)}
+              />
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 w-full min-w-0">
             <CustomSelect
               label="Izaberite radnika"
               value={form.assignee_id}
@@ -430,25 +435,36 @@ const TaskModal = ({
             />
           </div>
 
-          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-3 border-t border-line/40">
-            <div>
+          {/* Donja linija sa dugmadima - zaključana unutar širine */}
+          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-3 border-t border-line/40 w-full min-w-0 overflow-hidden">
+            <div className="min-w-0">
               {isEdit && (
                 <Button
                   type="button"
                   variant="ghost"
                   disabled={saving}
                   onClick={() => setConfirmDelete(true)}
-                  className="w-full sm:w-auto text-priority-urgent hover:bg-priority-urgent/10 active:scale-95"
+                  className="w-full sm:w-auto text-priority-urgent hover:bg-priority-urgent/10 shrink-0"
                 >
-                  <Trash2 className="h-4 w-4" /> Obriši pacijenta
+                  <Trash2 className="h-4 w-4 shrink-0" /> Obriši pacijenta
                 </Button>
               )}
             </div>
-            <div className="flex gap-2 justify-end">
-              <Button type="button" variant="secondary" onClick={onClose} disabled={saving} className="flex-1 sm:flex-initial active:scale-95">
+            <div className="flex items-center gap-2 justify-end min-w-0 flex-1 sm:flex-initial">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={onClose}
+                disabled={saving}
+                className="flex-1 sm:flex-initial min-w-0 truncate"
+              >
                 Odustani
               </Button>
-              <Button type="submit" loading={saving} className="flex-1 sm:flex-initial active:scale-95">
+              <Button
+                type="submit"
+                loading={saving}
+                className="flex-1 sm:flex-initial min-w-0 truncate"
+              >
                 {isEdit ? "Sačuvaj izmjene" : "Dodaj pacijenta"}
               </Button>
             </div>

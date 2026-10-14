@@ -66,7 +66,7 @@ const DatePicker = ({ label, value, onChange, placeholder = "Izaberite rok" }) =
   };
 
   return (
-    <div className="space-y-1.5" ref={ref}>
+    <div className="space-y-1.5 min-w-0 w-full" ref={ref}>
       {label && <label className="block text-xs font-semibold text-ink">{label}</label>}
       <div className="relative">
         <button
@@ -103,41 +103,49 @@ const DatePicker = ({ label, value, onChange, placeholder = "Izaberite rok" }) =
         </button>
 
         {open && (
-          <div className="card animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-150 absolute left-1/2 -translate-x-1/2 sm:left-0 sm:translate-x-0 z-[120] mt-1.5 w-[250px] xs:w-[260px] rounded-2xl border border-line bg-surface p-2.5 shadow-[var(--shadow-lift)]">
+          <div
+            className={cn(
+              "card animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-150 absolute z-[150] mt-1.5 rounded-2xl border border-line bg-surface shadow-[var(--shadow-lift)]",
+              // Mobile: centrirano na sredinu polja i kompaktno
+              "left-1/2 -translate-x-1/2 w-[250px] xs:w-[260px] p-2.5",
+              // Desktop: poravnato uz desni rub polja i standardne desktop dimenzije
+              "sm:left-auto sm:right-0 sm:translate-x-0 sm:w-72 sm:p-3"
+            )}
+          >
             {/* Navigacija po mjesecima */}
-            <div className="mb-2 flex items-center justify-between px-0.5">
-              <span className="text-[11px] font-bold capitalize text-ink">
+            <div className="mb-2.5 flex items-center justify-between px-0.5">
+              <span className="text-[11px] sm:text-xs font-bold capitalize text-ink">
                 {format(cursor, "LLLL yyyy.", { locale: srLatn })}
               </span>
-              <div className="flex items-center gap-0.5">
+              <div className="flex items-center gap-1">
                 <button
                   type="button"
                   onClick={() => setCursor((c) => subMonths(c, 1))}
-                  className="grid h-6 w-6 place-items-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-ink active:scale-95"
+                  className="grid h-7 w-7 place-items-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-ink active:scale-95"
                 >
-                  <ChevronLeft className="h-3.5 w-3.5" />
+                  <ChevronLeft className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
                   onClick={() => setCursor((c) => addMonths(c, 1))}
-                  className="grid h-6 w-6 place-items-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-ink active:scale-95"
+                  className="grid h-7 w-7 place-items-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-ink active:scale-95"
                 >
-                  <ChevronRight className="h-3.5 w-3.5" />
+                  <ChevronRight className="h-4 w-4" />
                 </button>
               </div>
             </div>
 
             {/* Dani u sedmici */}
-            <div className="mb-1 grid grid-cols-7 text-center">
+            <div className="mb-1.5 grid grid-cols-7 text-center">
               {WEEKDAYS.map((w) => (
-                <span key={w} className="text-[9px] font-bold uppercase tracking-wider text-faint">
+                <span key={w} className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-faint">
                   {w}
                 </span>
               ))}
             </div>
 
             {/* Kalendarska mreža dana */}
-            <div className="grid grid-cols-7 gap-0.5 place-items-center">
+            <div className="grid grid-cols-7 gap-0.5 sm:gap-1 place-items-center">
               {days.map((day) => {
                 const isSelected = parsedDate && isSameDay(day, parsedDate);
                 const isCurrentMonth = isSameMonth(day, cursor);
@@ -149,7 +157,7 @@ const DatePicker = ({ label, value, onChange, placeholder = "Izaberite rok" }) =
                     type="button"
                     onClick={() => selectDate(day)}
                     className={cn(
-                      "grid h-7 w-7 place-items-center rounded-lg text-[11px] font-medium transition-all duration-150 active:scale-90",
+                      "grid h-7 w-7 sm:h-8 sm:w-8 place-items-center rounded-xl text-[11px] sm:text-xs font-medium transition-all duration-150 active:scale-90",
                       !isCurrentMonth && "text-faint/35",
                       isCurrentMonth && !isSelected && "text-ink hover:bg-surface-2",
                       isCurrentDay && !isSelected && "border border-brand-500/50 text-brand-600 font-bold",
@@ -163,25 +171,25 @@ const DatePicker = ({ label, value, onChange, placeholder = "Izaberite rok" }) =
             </div>
 
             {/* Brze prečice */}
-            <div className="mt-2 flex items-center justify-between border-t border-line/60 pt-1.5 text-[10px]">
+            <div className="mt-3 flex items-center justify-between border-t border-line/60 pt-2 text-[10px] sm:text-[11px]">
               <button
                 type="button"
                 onClick={() => selectDate(new Date())}
-                className="rounded-md px-1.5 py-0.5 font-semibold text-brand-600 hover:bg-brand-50 transition-colors active:scale-95"
+                className="rounded-lg px-2 py-1 font-semibold text-brand-600 hover:bg-brand-50 transition-colors active:scale-95"
               >
                 Danas
               </button>
               <button
                 type="button"
                 onClick={() => selectDate(addDays(new Date(), 1))}
-                className="rounded-md px-1.5 py-0.5 font-semibold text-muted hover:bg-surface-2 transition-colors active:scale-95"
+                className="rounded-lg px-2 py-1 font-semibold text-muted hover:bg-surface-2 transition-colors active:scale-95"
               >
                 Sutra
               </button>
               <button
                 type="button"
                 onClick={() => selectDate(addDays(new Date(), 7))}
-                className="rounded-md px-1.5 py-0.5 font-semibold text-muted hover:bg-surface-2 transition-colors active:scale-95"
+                className="rounded-lg px-2 py-1 font-semibold text-muted hover:bg-surface-2 transition-colors active:scale-95"
               >
                 Za 7 dana
               </button>
